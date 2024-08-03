@@ -5,23 +5,18 @@
  * LICENSE file in the root directory of this source tree.
  *
  */
-
 import './fontSize.css';
-
 import {$patchStyleText} from '@lexical/selection';
 import {$getSelection, LexicalEditor} from 'lexical';
 import * as React from 'react';
-
 const MIN_ALLOWED_FONT_SIZE = 8;
 const MAX_ALLOWED_FONT_SIZE = 72;
 const DEFAULT_FONT_SIZE = 15;
-
 // eslint-disable-next-line no-shadow
 enum updateFontSizeType {
   increment = 1,
   decrement,
 }
-
 export default function FontSize({
   selectionFontSize,
   disabled,
@@ -32,8 +27,6 @@ export default function FontSize({
   editor: LexicalEditor;
 }) {
   const [inputValue, setInputValue] = React.useState<string>(selectionFontSize);
-  const [inputChangeFlag, setInputChangeFlag] = React.useState<boolean>(false);
-
   /**
    * Calculates the new font size based on the update type.
    * @param currentFontSize - The current font size
@@ -47,7 +40,6 @@ export default function FontSize({
     if (!updateType) {
       return currentFontSize;
     }
-
     let updatedFontSize: number = currentFontSize;
     switch (updateType) {
       case updateFontSizeType.decrement:
@@ -72,7 +64,6 @@ export default function FontSize({
             break;
         }
         break;
-
       case updateFontSizeType.increment:
         switch (true) {
           case currentFontSize < MIN_ALLOWED_FONT_SIZE:
@@ -95,7 +86,6 @@ export default function FontSize({
             break;
         }
         break;
-
       default:
         break;
     }
@@ -104,7 +94,6 @@ export default function FontSize({
   /**
    * Patches the selection with the updated font size.
    */
-
   const updateFontSizeInSelection = React.useCallback(
     (newFontSize: string | null, updateType: updateFontSizeType | null) => {
       const getNextFontSize = (prevFontSize: string | null): string => {
@@ -118,7 +107,6 @@ export default function FontSize({
         );
         return `${nextFontSize}px`;
       };
-
       editor.update(() => {
         if (editor.isEditable()) {
           const selection = $getSelection();
@@ -132,30 +120,25 @@ export default function FontSize({
     },
     [editor],
   );
-
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const inputValueNumber = Number(inputValue);
-
     if (['e', 'E', '+', '-'].includes(e.key) || isNaN(inputValueNumber)) {
       e.preventDefault();
       setInputValue('');
       return;
     }
-    setInputChangeFlag(true);
-    if (e.key === 'Enter' || e.key === 'Tab' || e.key === 'Escape') {
+    if (e.key === 'Enter') {
       e.preventDefault();
-
-      updateFontSizeByInputValue(inputValueNumber);
+      let updatedFontSize = inputValueNumber;
+      if (inputValueNumber > MAX_ALLOWED_FONT_SIZE) {
+        updatedFontSize = MAX_ALLOWED_FONT_SIZE;
+      } else if (inputValueNumber < MIN_ALLOWED_FONT_SIZE) {
+        updatedFontSize = MIN_ALLOWED_FONT_SIZE;
+      }
+      setInputValue(String(updatedFontSize));
+      updateFontSizeInSelection(String(updatedFontSize) + 'px', null);
     }
   };
-
-  const handleInputBlur = () => {
-    if (inputValue !== '' && inputChangeFlag) {
-      const inputValueNumber = Number(inputValue);
-      updateFontSizeByInputValue(inputValueNumber);
-    }
-  };
-
   const handleButtonClick = (updateType: updateFontSizeType) => {
     if (inputValue !== '') {
       const nextFontSize = calculateNextFontSize(
@@ -167,24 +150,14 @@ export default function FontSize({
       updateFontSizeInSelection(null, updateType);
     }
   };
-
-  const updateFontSizeByInputValue = (inputValueNumber: number) => {
-    let updatedFontSize = inputValueNumber;
-    if (inputValueNumber > MAX_ALLOWED_FONT_SIZE) {
-      updatedFontSize = MAX_ALLOWED_FONT_SIZE;
-    } else if (inputValueNumber < MIN_ALLOWED_FONT_SIZE) {
-      updatedFontSize = MIN_ALLOWED_FONT_SIZE;
+  const handleBlurEvent = () => {
+    if (inputValue !== selectionFontSize) {
+      setInputValue(selectionFontSize);
     }
-
-    setInputValue(String(updatedFontSize));
-    updateFontSizeInSelection(String(updatedFontSize) + 'px', null);
-    setInputChangeFlag(false);
   };
-
   React.useEffect(() => {
     setInputValue(selectionFontSize);
   }, [selectionFontSize]);
-
   return (
     <>
       <button
@@ -198,7 +171,6 @@ export default function FontSize({
         className="toolbar-item font-decrement">
         <i className="format minus-icon" />
       </button>
-
       <input
         type="number"
         value={inputValue}
@@ -207,8 +179,8 @@ export default function FontSize({
         min={MIN_ALLOWED_FONT_SIZE}
         max={MAX_ALLOWED_FONT_SIZE}
         onChange={(e) => setInputValue(e.target.value)}
+        onBlur={handleBlurEvent}
         onKeyDown={handleKeyPress}
-        onBlur={handleInputBlur}
       />
 
       <button
